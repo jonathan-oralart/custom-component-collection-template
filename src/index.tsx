@@ -11,6 +11,7 @@ export const HelloWorld: FC = () => {
   return (
     <div>
       <div>Hello {name}!</div>
+      <div>World</div>
     </div>
   )
 }

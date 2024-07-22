@@ -1,7 +1,11 @@
 {
   "compilerOptions": {
     "target": "ESNext",
-    "lib": ["dom", "dom.iterable", "esnext"],
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
     "skipLibCheck": true,
     "esModuleInterop": true,
     "strict": true,
@@ -11,5 +15,9 @@
     "noEmit": true,
     "jsx": "react-jsx"
   },
-  "include": ["**/*.tsx", "**/*.ts"]
+  "include": [
+    "**/*.tsx",
+    "**/*.ts",
+    "src/retool_method_signatures.d-ts"
+  ]
 }

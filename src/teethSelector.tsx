@@ -17,7 +17,6 @@ function Tooth(
       id={`tooth-${props.toothNum}`}
       onClick={() => {
         if (selected) {
-          // debugger;
           const splitValues = props.value.split(/[\s,]+/)
           const parsedValues = splitValues.map((x) => x.trim())
           const noBlankValues = parsedValues.filter((x) => x !== '')
@@ -28,7 +27,6 @@ function Tooth(
 
           props.setValue(joinedValues)
         } else {
-          // debugger;
           const splitValues = props.value.split(/[\s,]+/)
           const parsedValues = splitValues.map((x) => x.trim())
           const noBlankValues = parsedValues.filter((x) => x !== '')
@@ -65,7 +63,7 @@ type TeethSelectionProps = {
   value: string
   setValue: (teeth: string) => void
 }
-function TeethSelection(props: TeethSelectionProps) {
+function TeethSelectionBase(props: TeethSelectionProps) {
   return (
     <>
       <div className="tooth_chart_container">
@@ -316,4 +314,4 @@ function TeethSelection(props: TeethSelectionProps) {
   )
 }
 
-export default TeethSelection
+export default TeethSelectionBase

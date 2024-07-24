@@ -2,16 +2,12 @@ import React from 'react'
 import { type FC } from 'react'
 
 import { Retool } from '@tryretool/custom-component-support'
+import TeethSelectionBase from './teethSelector'
 
-export const HelloWorld: FC = () => {
-  const [name, _setName] = Retool.useStateString({
-    name: 'name'
-  })
+export const TeethSelection: FC = () => {
+  const [value, setValue] = Retool.useStateString({ name: 'value' })
 
   return (
-    <div>
-      <div>Hello {name}!</div>
-      <div>World</div>
-    </div>
+    <TeethSelectionBase value={value} setValue={setValue} onChange={() => {}} />
   )
 }

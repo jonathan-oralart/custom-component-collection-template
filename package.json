@@ -32,9 +32,9 @@
     "postcss-modules": "^6.0.0"
   },
   "retoolCustomComponentLibraryConfig": {
-    "name": "MyGreatLibrary",
-    "label": "My Great Library",
-    "description": "A library full of great things",
+    "name": "TeethSelection",
+    "label": "Select a tooth",
+    "description": "Select a tooth for the patient",
     "entryPoint": "src/index.tsx",
     "outputPath": "dist"
   }

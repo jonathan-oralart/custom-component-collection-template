@@ -2,9 +2,22 @@ import React, { useState, useEffect } from 'react'
 import { teethData } from './teethData'
 
 type TeethSelectionProps = {
-  onChange: (teeth: number[]) => void
-  value: number[]
-  setValue: (teeth: number[]) => void
+  onChange: (teeth: string) => void
+  value: string
+  setValue: (teeth: string) => void
+}
+
+// Helper function to convert string to array of numbers
+function stringToArray(value: string): number[] {
+  return value
+    .split(/[\s,]+/)
+    .map((x) => parseInt(x))
+    .filter(Boolean)
+}
+
+// Helper function to convert array of numbers to string
+function arrayToString(arr: number[]): string {
+  return arr.join(', ')
 }
 
 function Tooth({
@@ -66,15 +79,19 @@ function TeethSelectionBase({
   useEffect(() => {
     const handleMouseUp = () => {
       if (firstSelectedTooth !== null) {
-        const wasFirstToothSelected = value.includes(firstSelectedTooth)
+        const selectedTeeth = stringToArray(value)
+        const wasFirstToothSelected = selectedTeeth.includes(firstSelectedTooth)
         let newSelection: number[]
         if (wasFirstToothSelected) {
-          newSelection = value.filter((tooth) => !draggedTeeth.has(tooth))
+          newSelection = selectedTeeth.filter(
+            (tooth) => !draggedTeeth.has(tooth)
+          )
         } else {
-          newSelection = [...new Set([...value, ...draggedTeeth])]
+          newSelection = [...new Set([...selectedTeeth, ...draggedTeeth])]
         }
-        setValue(newSelection)
-        onChange(newSelection)
+        const newValue = arrayToString(newSelection)
+        setValue(newValue)
+        onChange(newValue)
       }
       setIsDragging(false)
       setFirstSelectedTooth(null)
@@ -121,19 +138,21 @@ function TeethSelectionBase({
     }
   }
 
-  const renderTeeth = (arch: 'upper' | 'lower') =>
-    teethData
+  const renderTeeth = (arch: 'upper' | 'lower') => {
+    const selectedTeeth = stringToArray(value)
+    return teethData
       .filter((tooth) => tooth.arch === arch)
       .map((tooth) => (
         <Tooth
           key={tooth.toothNum}
           {...tooth}
-          isSelected={value.includes(tooth.toothNum)}
+          isSelected={selectedTeeth.includes(tooth.toothNum)}
           isDragging={draggedTeeth.has(tooth.toothNum)}
           onMouseDown={handleMouseDown}
           onMouseEnter={handleMouseEnter}
         />
       ))
+  }
 
   return (
     <div className="tooth_chart_container">

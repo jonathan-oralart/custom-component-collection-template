@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect } from 'react'
 import { teethData } from './teethData'
 
 type TeethSelectionProps = {
@@ -41,11 +41,7 @@ function Tooth({
 
   return (
     <g
-      style={{
-        fill: fillColor,
-        cursor: 'pointer',
-        transition: 'fill 0.05s ease-in-out'
-      }}
+      style={{ fill: fillColor, cursor: 'pointer' }}
       id={`tooth-${toothNum}`}
       onMouseDown={() => onMouseDown(toothNum)}
       onMouseEnter={() => onMouseEnter(toothNum)}
@@ -56,8 +52,7 @@ function Tooth({
           fontSize: '2.3em',
           fill: isSelected || isDragging ? 'white' : '#858585',
           fontFamily: 'Roboto,Helvetica,Arial,sans-serif',
-          userSelect: 'none',
-          transition: 'fill 0.05s ease-in-out'
+          userSelect: 'none'
         }}
         textAnchor="middle"
         transform={textTransform}
@@ -73,26 +68,16 @@ function TeethSelectionBase({
   value,
   setValue
 }: TeethSelectionProps) {
+  const [internalValue, setInternalValue] = useState(stringToArray(value))
   const [draggedTeeth, setDraggedTeeth] = useState<Set<number>>(new Set())
   const [isDragging, setIsDragging] = useState(false)
   const [firstSelectedTooth, setFirstSelectedTooth] = useState<number | null>(
     null
   )
-  const [internalValue, setInternalValue] = useState(stringToArray(value))
 
   useEffect(() => {
     setInternalValue(stringToArray(value))
   }, [value])
-
-  const updateSelection = useCallback(
-    (newSelection: number[]) => {
-      setInternalValue(newSelection)
-      const newValue = arrayToString(newSelection)
-      setValue(newValue)
-      onChange(newValue)
-    },
-    [setValue, onChange]
-  )
 
   useEffect(() => {
     const handleMouseUp = () => {
@@ -106,7 +91,10 @@ function TeethSelectionBase({
         } else {
           newSelection = [...new Set([...internalValue, ...draggedTeeth])]
         }
-        updateSelection(newSelection)
+        setInternalValue(newSelection)
+        const newValue = arrayToString(newSelection)
+        setValue(newValue)
+        onChange(newValue)
       }
       setIsDragging(false)
       setFirstSelectedTooth(null)
@@ -114,64 +102,58 @@ function TeethSelectionBase({
     }
     window.addEventListener('mouseup', handleMouseUp)
     return () => window.removeEventListener('mouseup', handleMouseUp)
-  }, [internalValue, draggedTeeth, firstSelectedTooth, updateSelection])
+  }, [internalValue, draggedTeeth, firstSelectedTooth, onChange, setValue])
 
-  const handleMouseDown = useCallback((toothNum: number) => {
+  const handleMouseDown = (toothNum: number) => {
     setIsDragging(true)
     setFirstSelectedTooth(toothNum)
     setDraggedTeeth(new Set([toothNum]))
-  }, [])
+  }
 
-  const handleMouseEnter = useCallback(
-    (toothNum: number) => {
-      if (isDragging && firstSelectedTooth !== null) {
-        const firstToothData = teethData.find(
-          (t) => t.toothNum === firstSelectedTooth
+  const handleMouseEnter = (toothNum: number) => {
+    if (isDragging && firstSelectedTooth !== null) {
+      const firstToothData = teethData.find(
+        (t) => t.toothNum === firstSelectedTooth
+      )
+      const currentToothData = teethData.find((t) => t.toothNum === toothNum)
+
+      if (firstToothData && currentToothData) {
+        const startOrder = Math.min(
+          firstToothData.orderNum,
+          currentToothData.orderNum
         )
-        const currentToothData = teethData.find((t) => t.toothNum === toothNum)
+        const endOrder = Math.max(
+          firstToothData.orderNum,
+          currentToothData.orderNum
+        )
 
-        if (firstToothData && currentToothData) {
-          const startOrder = Math.min(
-            firstToothData.orderNum,
-            currentToothData.orderNum
-          )
-          const endOrder = Math.max(
-            firstToothData.orderNum,
-            currentToothData.orderNum
-          )
+        const newDraggedTeeth = new Set(
+          teethData
+            .filter(
+              (tooth) =>
+                tooth.orderNum >= startOrder && tooth.orderNum <= endOrder
+            )
+            .map((tooth) => tooth.toothNum)
+        )
 
-          const newDraggedTeeth = new Set(
-            teethData
-              .filter(
-                (tooth) =>
-                  tooth.orderNum >= startOrder && tooth.orderNum <= endOrder
-              )
-              .map((tooth) => tooth.toothNum)
-          )
-
-          setDraggedTeeth(newDraggedTeeth)
-        }
+        setDraggedTeeth(newDraggedTeeth)
       }
-    },
-    [isDragging, firstSelectedTooth]
-  )
+    }
+  }
 
-  const renderTeeth = useCallback(
-    (arch: 'upper' | 'lower') =>
-      teethData
-        .filter((tooth) => tooth.arch === arch)
-        .map((tooth) => (
-          <Tooth
-            key={tooth.toothNum}
-            {...tooth}
-            isSelected={internalValue.includes(tooth.toothNum)}
-            isDragging={draggedTeeth.has(tooth.toothNum)}
-            onMouseDown={handleMouseDown}
-            onMouseEnter={handleMouseEnter}
-          />
-        )),
-    [internalValue, draggedTeeth, handleMouseDown, handleMouseEnter]
-  )
+  const renderTeeth = (arch: 'upper' | 'lower') =>
+    teethData
+      .filter((tooth) => tooth.arch === arch)
+      .map((tooth) => (
+        <Tooth
+          key={tooth.toothNum}
+          {...tooth}
+          isSelected={internalValue.includes(tooth.toothNum)}
+          isDragging={draggedTeeth.has(tooth.toothNum)}
+          onMouseDown={handleMouseDown}
+          onMouseEnter={handleMouseEnter}
+        />
+      ))
 
   return (
     <div className="tooth_chart_container">

@@ -1,8 +1,10 @@
 import React, { useCallback, useEffect } from 'react'
 import { atom, useAtom } from 'jotai'
 import { teethData } from './teethData'
+
 // Atoms for state management
-const selectedTeethAtom = atom<Set<number>>(new Set<number>())
+const savedSelectionAtom = atom<Set<number>>(new Set<number>())
+const dragSelectionAtom = atom<Set<number>>(new Set<number>())
 const isDraggingAtom = atom(false)
 const firstSelectedToothAtom = atom<number | null>(null)
 
@@ -27,12 +29,19 @@ function Tooth({
   onMouseDown: (toothNum: number) => void
   onMouseEnter: (toothNum: number) => void
 }) {
-  const [selectedTeeth] = useAtom(selectedTeethAtom)
-  const selected = selectedTeeth.has(toothNum)
+  const [savedSelection] = useAtom(savedSelectionAtom)
+  const [dragSelection] = useAtom(dragSelectionAtom)
+
+  const isSaved = savedSelection.has(toothNum)
+  const isDragged = dragSelection.has(toothNum)
+
+  let fillColor = '#e8e8e8' // Default color
+  if (isSaved) fillColor = '#3a88d7' // Saved selection color
+  if (isDragged) fillColor = isSaved ? '#2a68b7' : '#6aA8f7' // Drag selection color
 
   return (
     <g
-      style={{ fill: selected ? '#3a88d7' : '#e8e8e8', cursor: 'pointer' }}
+      style={{ fill: fillColor, cursor: 'pointer' }}
       id={`tooth-${toothNum}`}
       onMouseDown={() => onMouseDown(toothNum)}
       onMouseEnter={() => onMouseEnter(toothNum)}
@@ -41,7 +50,7 @@ function Tooth({
       <text
         style={{
           fontSize: '2.3em',
-          fill: selected ? 'white' : '#858585',
+          fill: isSaved || isDragged ? 'white' : '#858585',
           fontFamily: 'Roboto,Helvetica,Arial,sans-serif',
           userSelect: 'none'
         }}
@@ -59,7 +68,8 @@ function TeethSelectionBase({
   value,
   setValue
 }: TeethSelectionProps) {
-  const [selectedTeeth, setSelectedTeeth] = useAtom(selectedTeethAtom)
+  const [savedSelection, setSavedSelection] = useAtom(savedSelectionAtom)
+  const [dragSelection, setDragSelection] = useAtom(dragSelectionAtom)
   const [isDragging, setIsDragging] = useAtom(isDraggingAtom)
   const [firstSelectedTooth, setFirstSelectedTooth] = useAtom(
     firstSelectedToothAtom
@@ -68,45 +78,60 @@ function TeethSelectionBase({
   useEffect(() => {
     const handleMouseUp = () => {
       setIsDragging(false)
+
+      if (firstSelectedTooth !== null) {
+        const wasFirstToothSelected = savedSelection.has(firstSelectedTooth)
+        setSavedSelection((prev) => {
+          const newSelection = new Set(prev)
+          dragSelection.forEach((tooth) => {
+            if (wasFirstToothSelected) {
+              newSelection.delete(tooth)
+            } else {
+              newSelection.add(tooth)
+            }
+          })
+          return newSelection
+        })
+      }
+
       setFirstSelectedTooth(null)
+      setDragSelection(new Set())
     }
     window.addEventListener('mouseup', handleMouseUp)
     return () => window.removeEventListener('mouseup', handleMouseUp)
-  }, [setIsDragging, setFirstSelectedTooth])
+  }, [
+    setIsDragging,
+    setFirstSelectedTooth,
+    setSavedSelection,
+    setDragSelection,
+    dragSelection,
+    firstSelectedTooth,
+    savedSelection
+  ])
 
   useEffect(() => {
-    const newSelectedTeeth = new Set(
+    const newSavedSelection = new Set(
       value
         .split(/[\s,]+/)
         .map((x) => parseInt(x))
         .filter(Boolean)
     )
-    setSelectedTeeth(newSelectedTeeth)
-  }, [value, setSelectedTeeth])
+    setSavedSelection(newSavedSelection)
+  }, [value, setSavedSelection])
 
-  const updateSelection = useCallback(
-    (newSelection: Set<number>) => {
-      const newValue = Array.from(newSelection).join(', ')
-      setSelectedTeeth(newSelection)
-      setValue(newValue)
-      onChange(newValue)
-    },
-    [setValue, onChange, setSelectedTeeth]
-  )
+  const updateSelection = useCallback(() => {
+    const newValue = Array.from(savedSelection).join(', ')
+    setValue(newValue)
+    onChange(newValue)
+  }, [setValue, onChange, savedSelection])
 
   const handleMouseDown = useCallback(
     (toothNum: number) => {
       setIsDragging(true)
       setFirstSelectedTooth(toothNum)
-      const newSelection = new Set(selectedTeeth)
-      if (newSelection.has(toothNum)) {
-        newSelection.delete(toothNum)
-      } else {
-        newSelection.add(toothNum)
-      }
-      updateSelection(newSelection)
+      setDragSelection(new Set([toothNum]))
     },
-    [setIsDragging, setFirstSelectedTooth, selectedTeeth, updateSelection]
+    [setIsDragging, setFirstSelectedTooth, setDragSelection]
   )
 
   const handleMouseEnter = useCallback(
@@ -126,25 +151,24 @@ function TeethSelectionBase({
             firstToothData.orderNum,
             currentToothData.orderNum
           )
-          const shouldSelect = !selectedTeeth.has(firstSelectedTooth)
 
-          const newSelection = new Set(selectedTeeth)
+          const newDragSelection = new Set<number>()
           teethData.forEach((tooth) => {
             if (tooth.orderNum >= startOrder && tooth.orderNum <= endOrder) {
-              if (shouldSelect) {
-                newSelection.add(tooth.toothNum)
-              } else {
-                newSelection.delete(tooth.toothNum)
-              }
+              newDragSelection.add(tooth.toothNum)
             }
           })
 
-          updateSelection(newSelection)
+          setDragSelection(newDragSelection)
         }
       }
     },
-    [isDragging, firstSelectedTooth, selectedTeeth, updateSelection]
+    [isDragging, firstSelectedTooth, setDragSelection]
   )
+
+  useEffect(() => {
+    updateSelection()
+  }, [savedSelection, updateSelection])
 
   const renderTeeth = useCallback(
     (arch: 'upper' | 'lower') =>
